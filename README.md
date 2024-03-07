@@ -41,7 +41,12 @@ Execute the script to add IP addresses to a nftables set based on a given hostna
 
 ```shell
 ./hostname2set.sh -t A inet filter ipv4-temp-egress-web myhost.myhost.example
+
+# Optionally check the result
+nft list set inet filter ipv4-temp-egress-web
 ```
+
+Note that the nftables set must exist prior to attempting to add elements.
 
 ---
 
