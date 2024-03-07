@@ -1,6 +1,6 @@
 # hostname2set
 
-Script that resolves a hostname to its corresponding IP addresses and adds these to an nftables set.
+Script that resolves a hostname (or multiple) to its corresponding IP addresses and adds these to an nftables set.
 
 ---
 
@@ -37,7 +37,7 @@ The script used the ``dig`` utility to resolve hostnames to ip addresses. Make s
 
 ## Quickstart
 
-Execute the script to add IP addresses to a nftables set based on a given hostname:
+Execute the script to add IP addresses to a nftables set based on a given hostname (or a comma-separated list of hostnames):
 
 ```shell
 ./hostname2set.sh -t A inet filter ipv4-temp-egress-web myhost.myhost.example

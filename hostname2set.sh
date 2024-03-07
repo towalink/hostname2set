@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#################################################
-### Add IPs of given hostname to nftables set ###
-#################################################
+####################################################
+### Add IPs of given hostname(s) to nftables set ###
+####################################################
 
 # Author: Dirk Henrici
 # Creation: March 2024
@@ -102,15 +102,15 @@ function checkCommandAvailability #(command)
 # Prints information in the script usage (i.e. available command line parameters)
 function printUsage
 {
-  echo -e "Usage: ${0##*/} [-d|--debug] [-t|--type A|AAAA] [[tabletype tablename] setname] hostname\n"
+  echo -e "Usage: ${0##*/} [-d|--debug] [-t|--type A|AAAA] [[tabletype tablename] setname] hostname(s)\n"
   echo -e "  -h, --help        Prints usage info"
   echo -e "  -d, --debug       Enable debug output"
   echo -e "  -q, --quiet       Minimize output in case of success"
   echo -e "  -t, --type        'A' for IPv4 or 'AAAA' for IPv6"
-  echo -e "  hostname          the hostname for doing DNS query"
+  echo -e "  hostname(s)       one or more (comma-separated) hostnames for doing DNS query"
   echo
   echo -e "Example:"
-  echo -e "  ${0##*/} inet filter myset myhost.mydomain.com"
+  echo -e "  ${0##*/} inet filter myset myhost1.mydomain.com,myhost2.mydomain.com"
 }
 
 
@@ -170,7 +170,7 @@ fi
 if [[ ${#textargs[@]} -eq 0 ]]; then
   exitWithUsageError "No hostname provided as command line argument"
 fi
-hostname=${textargs[-1]}
+hostnames=${textargs[-1]}
 # Set setname (if given)
 if [[ ${#textargs[@]} -gt 1 ]]; then
   setname=${textargs[-2]}
@@ -181,7 +181,7 @@ if [ -z "$setname" ]; then
 fi
 # Set tablename (if given)
 if [[ ${#textargs[@]} -eq 3 ]]; then
-  exitWithUsageError "You need to provide tabletype, tablename, setname, and hostname"
+  exitWithUsageError "You need to provide tabletype, tablename, setname, and hostname(s)"
 fi
 # Set table type and table name (if given)
 if [[ ${#textargs[@]} -gt 3 ]]; then
@@ -208,24 +208,23 @@ fi
 # Check whether dig tool (part of bind-tools on Alpine) is installed
 checkCommandAvailability /usr/bin/dig
 
-if [ -z "${hostname:-}" ]; then
-  exitWithError "No hostname provided as command line argument"
-fi
-
-# Do DNS lookup to get a list of IP addresses
-addresses=$(dig +short -t "$addrtype" "$hostname")
-
-# Check for empty result
-if [ -z "$addresses" ]; then
-  exitWithError "DNS lookup for [$hostname] failed"
-fi
-
-# Iterate over retrieved IP addresses and add them to set
-while IFS= read -r address; do
-  if { [ "$addrtype" == "A" ] && [[ "$address" == *"."* ]]; } || { [ "$addrtype" == "AAAA" ] && [[ "$address" == *":"* ]]; } then
-    doOutputVerbose "Adding address [$address] to [table $tablename $setname]"
-    nft add element "$tablename" "$setname" "{" "$address" "}"
-  else
-    exitWithError "Unexpected output [$address]"
+for hostname in ${hostnames//,/ }
+do
+  # Do DNS lookup to get a list of IP addresses
+  addresses=$(dig +short -t "$addrtype" "$hostname")
+  
+  # Check for empty result
+  if [ -z "$addresses" ]; then
+    exitWithError "DNS lookup for [$hostname] failed"
   fi
-done <<< "$addresses"
+  
+  # Iterate over retrieved IP addresses and add them to set
+  while IFS= read -r address; do
+    if { [ "$addrtype" == "A" ] && [[ "$address" == *"."* ]]; } || { [ "$addrtype" == "AAAA" ] && [[ "$address" == *":"* ]]; } then
+      doOutputVerbose "table $tablename: adding address '$address' from hostname '$hostname' to set '$setname'"
+      nft add element "$tablename" "$setname" "{" "$address" "}"
+    else
+      exitWithError "Unexpected output [$address]"
+    fi
+  done <<< "$addresses"
+done
