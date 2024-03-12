@@ -210,8 +210,8 @@ checkCommandAvailability /usr/bin/dig
 
 for hostname in ${hostnames//,/ }
 do
-  # Do DNS lookup to get a list of IP addresses
-  addresses=$(dig +short -t "$addrtype" "$hostname")
+  # Do DNS lookup to get a list of IP addresses (filter cname aliases identified by trailing dot)
+  addresses=$(dig +short -t "$addrtype" "$hostname" | grep -v '\.$')
   
   # Check for empty result
   if [ -z "$addresses" ]; then
