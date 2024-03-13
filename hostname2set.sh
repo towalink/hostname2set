@@ -212,17 +212,22 @@ for hostname in ${hostnames//,/ }
 do
   # Do DNS lookup to get a list of IP addresses (filter cname aliases identified by trailing dot)
   addresses=$(dig +short -t "$addrtype" "$hostname" | grep -v '\.$')
-  
+
   # Check for empty result
   if [ -z "$addresses" ]; then
     exitWithError "DNS lookup for [$hostname] failed"
   fi
-  
+
   # Iterate over retrieved IP addresses and add them to set
   while IFS= read -r address; do
     if { [ "$addrtype" == "A" ] && [[ "$address" == *"."* ]]; } || { [ "$addrtype" == "AAAA" ] && [[ "$address" == *":"* ]]; } then
       doOutputVerbose "Adding address '$address' from hostname '$hostname' to set '$setname' to table '$tablename'"
-      nft add element "$tablename" "$setname" "{" "$address" "}"
+      # Add or update entry in atomic operation (just adding would not update timeout if element already exists)
+      nft -f - <<-EOF
+	add element $tablename $setname { $address }
+	delete element $tablename $setname { $address }
+	add element $tablename $setname { $address }
+	EOF
     else
       exitWithError "Unexpected output [$address]"
     fi
