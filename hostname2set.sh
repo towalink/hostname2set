@@ -221,7 +221,7 @@ do
   # Iterate over retrieved IP addresses and add them to set
   while IFS= read -r address; do
     if { [ "$addrtype" == "A" ] && [[ "$address" == *"."* ]]; } || { [ "$addrtype" == "AAAA" ] && [[ "$address" == *":"* ]]; } then
-      doOutputVerbose "table $tablename: adding address '$address' from hostname '$hostname' to set '$setname'"
+      doOutputVerbose "Adding address '$address' from hostname '$hostname' to set '$setname' to table '$tablename'"
       nft add element "$tablename" "$setname" "{" "$address" "}"
     else
       exitWithError "Unexpected output [$address]"

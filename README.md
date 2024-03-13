@@ -15,7 +15,6 @@ This is useful for adding IP addresses to sets in a safe manner. With this, one 
    table inet filter {
         set ipv4-temp-egress-web {
             type ipv4_addr
-            flags interval
             timeout 200s
         }
         ...
